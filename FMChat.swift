@@ -171,31 +171,39 @@ final class ChatModel {
     var messages: [Message] = []
     var isResponding = false
     var availabilityNote: String?
+    var toolsEnabled = true
 
     private var session: LanguageModelSession
     private let relay = ActivityRelay()
     private var pendingReplyID: UUID?
 
-    private static func makeSession(relay: ActivityRelay) -> LanguageModelSession {
-        LanguageModelSession(
-            tools: [
-                ListDirectoryTool(relay: relay),
-                ReadFileTool(relay: relay),
-                SearchTextTool(relay: relay),
-            ],
-            instructions: """
-            You are a helpful, concise assistant running fully on-device on this Mac.
-            You can inspect the user's local files with the listDirectory, readFile, and \
-            searchText tools. Use them whenever the user asks about their files, folders, \
-            or code, then answer based on what you found. When calling a tool, pass the \
-            path exactly as the user wrote it, character for character, including ~. \
-            Never invent or alter paths. Keep answers short.
-            """
+    private static func makeSession(relay: ActivityRelay, toolsEnabled: Bool) -> LanguageModelSession {
+        if toolsEnabled {
+            return LanguageModelSession(
+                tools: [
+                    ListDirectoryTool(relay: relay),
+                    ReadFileTool(relay: relay),
+                    SearchTextTool(relay: relay),
+                ],
+                instructions: """
+                You are a helpful, concise assistant running fully on-device on this Mac.
+                You have tools to inspect local files: listDirectory, readFile, and searchText. \
+                Only use a tool when the user's message explicitly mentions a file, folder, or \
+                path on this Mac (for example ~/Documents, /Users/..., or "my FMChat folder"). \
+                When calling a tool, copy the path exactly as the user wrote it, character for \
+                character. Never invent paths. For general knowledge questions that do not \
+                mention the user's files, answer directly from your own knowledge and do not \
+                use any tool. Keep answers short.
+                """
+            )
+        }
+        return LanguageModelSession(
+            instructions: "You are a helpful, concise assistant running fully on-device on this Mac."
         )
     }
 
     init() {
-        session = Self.makeSession(relay: relay)
+        session = Self.makeSession(relay: relay, toolsEnabled: true)
         if case .unavailable(let reason) = SystemLanguageModel.default.availability {
             availabilityNote = "Model unavailable: \(reason)"
         }
@@ -236,8 +244,19 @@ final class ChatModel {
         }
     }
 
+    func setTools(enabled: Bool) {
+        guard enabled != toolsEnabled, !isResponding else { return }
+        toolsEnabled = enabled
+        session = Self.makeSession(relay: relay, toolsEnabled: enabled)
+        messages.append(Message(
+            role: .tool,
+            text: enabled ? "🛠️ File tools on — conversation context reset"
+                          : "💬 File tools off — conversation context reset"
+        ))
+    }
+
     func reset() {
-        session = Self.makeSession(relay: relay)
+        session = Self.makeSession(relay: relay, toolsEnabled: toolsEnabled)
         messages.removeAll()
     }
 }
@@ -293,6 +312,13 @@ struct ChatView: View {
             .padding(10)
         }
         .toolbar {
+            Toggle("File Tools", isOn: Binding(
+                get: { model.toolsEnabled },
+                set: { model.setTools(enabled: $0) }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .disabled(model.isResponding)
             Button("New Chat", systemImage: "square.and.pencil") {
                 model.reset()
             }
