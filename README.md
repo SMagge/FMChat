@@ -1,6 +1,6 @@
 # FMChat
 
-A tiny SwiftUI chat app for Apple's **on-device Foundation Model** (Apple Intelligence) — no cloud, no API keys. Includes tool calling so the model can read your local files.
+A tiny SwiftUI chat app **and `fm` terminal command** for Apple's **on-device Foundation Model** (Apple Intelligence) — no cloud, no API keys. Includes tool calling so the model can read your local files.
 
 ## Features
 
@@ -24,8 +24,19 @@ Ask things like: *"List what's in ~/Projects"*, *"Summarize ~/FMChat/FMChat.swif
 
 ```bash
 ./build.sh
-open FMChat.app
+open FMChat.app          # the chat app
+fm "hello"               # the CLI (installed to ~/.local/bin)
 ```
+
+## `fm` CLI usage
+
+```bash
+fm "Write a haiku about taxes"        # prompt from arguments
+echo "What is 2+2?" | fm              # prompt from stdin
+cat notes.txt | fm "summarize this"   # piped input + instruction combined
+```
+
+If `fm` isn't found, add `export PATH="$HOME/.local/bin:$PATH"` to your `~/.zshrc`.
 
 ## Notes & limits
 

@@ -24,3 +24,11 @@ EOF
 
 codesign --force --sign - FMChat.app
 echo "Built FMChat.app — launch with: open FMChat.app"
+
+# Build the fm CLI (single-file executables must be named main.swift for top-level code)
+mkdir -p "$HOME/.local/bin"
+TMPDIR_FM=$(mktemp -d)
+cp fm.swift "$TMPDIR_FM/main.swift"
+swiftc -O "$TMPDIR_FM/main.swift" -o "$HOME/.local/bin/fm"
+rm -rf "$TMPDIR_FM"
+echo "Built fm CLI — installed to ~/.local/bin/fm (make sure ~/.local/bin is in your PATH)"
