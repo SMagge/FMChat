@@ -312,17 +312,34 @@ struct ChatView: View {
             .padding(10)
         }
         .toolbar {
-            Toggle("File Tools", isOn: Binding(
-                get: { model.toolsEnabled },
-                set: { model.setTools(enabled: $0) }
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .disabled(model.isResponding)
-            Button("New Chat", systemImage: "square.and.pencil") {
-                model.reset()
+            ToolbarItem {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder.badge.gearshape")
+                        .foregroundStyle(model.toolsEnabled ? Color.accentColor : .secondary)
+                    Text("File access")
+                        .font(.caption)
+                    Toggle("File access", isOn: Binding(
+                        get: { model.toolsEnabled },
+                        set: { model.setTools(enabled: $0) }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .disabled(model.isResponding)
+                }
+                .help("""
+                When on, the model can call read-only tools on this Mac: \
+                listDirectory, readFile, and searchText. \
+                Turn off for pure chat (no file access). \
+                Toggling resets the conversation context.
+                """)
             }
-            .disabled(model.isResponding)
+            ToolbarItem {
+                Button("New Chat", systemImage: "square.and.pencil") {
+                    model.reset()
+                }
+                .disabled(model.isResponding)
+            }
         }
         .onAppear { focused = true }
     }
